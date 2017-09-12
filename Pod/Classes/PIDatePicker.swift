@@ -9,6 +9,31 @@
 import UIKit
 import Foundation
 
+private struct IndexSupport: Comparable {
+    let element: Character
+    let position: Int
+    
+    public static func <(lhs: IndexSupport, rhs: IndexSupport) -> Bool {
+        return lhs.position < rhs.position
+    }
+    
+    public static func <=(lhs: IndexSupport, rhs: IndexSupport) -> Bool {
+        return lhs.position <= rhs.position
+    }
+    
+    public static func >=(lhs: IndexSupport, rhs: IndexSupport) -> Bool {
+        return lhs.position >= rhs.position
+    }
+    
+    public static func >(lhs: IndexSupport, rhs: IndexSupport) -> Bool {
+        return lhs.position > rhs.position
+    }
+    
+    public static func ==(lhs: IndexSupport, rhs: IndexSupport) -> Bool {
+        return lhs.position == rhs.position
+    }
+}
+
 public class PIDatePicker: UIControl, UIPickerViewDataSource, UIPickerViewDelegate {
     
     // MARK: -
@@ -177,19 +202,24 @@ public class PIDatePicker: UIControl, UIPickerViewDataSource, UIPickerViewDelega
             return
         }
         
-        let firstComponentOrderingString = componentOrdering[componentOrdering.characters.index(componentOrdering.startIndex, offsetBy: 0)]
-        let lastComponentOrderingString = componentOrdering[componentOrdering.characters.index(componentOrdering.startIndex, offsetBy: componentOrdering.characters.count - 1)]
+        guard let dayIndex = componentOrdering.characters.index(of: "d"),
+            let monthIndex = componentOrdering.range(of: "MMMM")?.lowerBound,
+            let yearIndex = componentOrdering.characters.index(of: "y") else {
+                return
+        }
         
-        var characterSet = CharacterSet(charactersIn: String(firstComponentOrderingString) + String(lastComponentOrderingString))
-        characterSet = characterSet.union(CharacterSet.whitespacesAndNewlines).union(CharacterSet.punctuationCharacters)
-
-        componentOrdering = componentOrdering.trimmingCharacters(in: characterSet)
-        let remainingValue = componentOrdering[componentOrdering.characters.index(componentOrdering.startIndex, offsetBy: 0)]
+        let dayPosition = componentOrdering.characters.distance(from: componentOrdering.characters.startIndex, to: dayIndex)
+        let monthPosition = componentOrdering.distance(from: componentOrdering.startIndex, to: monthIndex)
+        let yearPosition = componentOrdering.characters.distance(from: componentOrdering.characters.startIndex, to: yearIndex)
+        
+        let orderedItems = [IndexSupport(element: "d", position: dayPosition),
+                            IndexSupport(element: "M", position: monthPosition),
+                            IndexSupport(element: "y", position: yearPosition)].sorted()
         
         guard
-            let firstComponent = PIDatePickerComponents(rawValue: firstComponentOrderingString),
-            let secondComponent = PIDatePickerComponents(rawValue: remainingValue),
-            let lastComponent = PIDatePickerComponents(rawValue: lastComponentOrderingString) else {
+            let firstComponent = PIDatePickerComponents(rawValue: orderedItems.first!.element),
+            let secondComponent = PIDatePickerComponents(rawValue: orderedItems[1].element),
+            let lastComponent = PIDatePickerComponents(rawValue: orderedItems.last!.element) else {
                 return
         }
         
